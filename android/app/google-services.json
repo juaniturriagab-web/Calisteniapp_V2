@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1094960140109",
+    "project_id": "calisteniapp-v2",
+    "storage_bucket": "calisteniapp-v2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1094960140109:android:2d277db03b2c68d9377104",
+        "android_client_info": {
+          "package_name": "com.example.calisteniapp_v2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiz26-SiPoaTI5IUDWbc-KU0x1WedpLv0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
