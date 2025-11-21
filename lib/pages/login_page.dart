@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/calisthenics_logo.dart';
 import '../pages/register_page.dart';
 import '../pages/home_page.dart';
+import '../pages/recover_password_phone_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -43,7 +44,9 @@ class _LoginPageState extends State<LoginPage>
 
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: emailCtrl.text.trim(), password: passCtrl.text.trim());
+        email: emailCtrl.text.trim(),
+        password: passCtrl.text.trim(),
+      );
 
       Navigator.pushReplacement(
         context,
@@ -73,11 +76,24 @@ class _LoginPageState extends State<LoginPage>
         child: Column(
           children: [
             const SizedBox(height: 80),
-            SlideTransition(position: _logoAnimation, child: const CalisthenicsLogo()),
+
+            // LOGO ANIMADO
+            SlideTransition(
+              position: _logoAnimation,
+              child: const CalisthenicsLogo(),
+            ),
+
             const SizedBox(height: 30),
-            const Text('Iniciar Sesión',
-                style: TextStyle(
-                    color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+
+            const Text(
+              'Iniciar Sesión',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
             const SizedBox(height: 40),
 
             // EMAIL
@@ -88,21 +104,45 @@ class _LoginPageState extends State<LoginPage>
             // CONTRASEÑA
             _input('Contraseña', passCtrl, Icons.lock_outline, obscure: true),
 
-            const SizedBox(height: 30),
+            // ===========================
+            // BOTÓN "OLVIDASTE TU CONTRASEÑA?"
+            // ===========================
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RecoverPasswordPhonePage(),
+                    ),
+                  );
+                },
+                child: const Text(
+                  "¿Olvidaste tu contraseña?",
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
 
             // BOTÓN LOGIN
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                  onPressed: _loading ? null : login,
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: primary,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14))),
-                  child: _loading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Entrar', style: TextStyle(fontSize: 18))),
+                onPressed: _loading ? null : login,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: _loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Entrar', style: TextStyle(fontSize: 18)),
+              ),
             ),
 
             const SizedBox(height: 20),
@@ -111,21 +151,30 @@ class _LoginPageState extends State<LoginPage>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('¿No tienes cuenta?', style: TextStyle(color: Colors.white70)),
+                const Text('¿No tienes cuenta?',
+                    style: TextStyle(color: Colors.white70)),
                 TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (_, __, ___) => const RegisterPage(),
-                      transitionsBuilder: (_, anim, __, child) =>
-                          SlideTransition(position: Tween<Offset>(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => const RegisterPage(),
+                        transitionsBuilder: (_, anim, __, child) =>
+                            SlideTransition(
+                          position: Tween<Offset>(
                             begin: const Offset(1, 0),
                             end: Offset.zero,
-                          ).animate(anim), child: child),
-                      transitionDuration: const Duration(milliseconds: 500),
-                    ),
+                          ).animate(anim),
+                          child: child,
+                        ),
+                        transitionDuration: const Duration(milliseconds: 500),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Regístrate',
+                    style: TextStyle(color: Color(0xFF0A4CFF)),
                   ),
-                  child: const Text('Regístrate', style: TextStyle(color: Color(0xFF0A4CFF))),
                 ),
               ],
             ),
@@ -135,10 +184,10 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  Widget _input(String label, TextEditingController ctrl, IconData icon,
+  Widget _input(String label, TextInputController, IconData icon,
       {bool obscure = false, TextInputType type = TextInputType.text}) {
     return TextField(
-      controller: ctrl,
+      controller: TextInputController,
       obscureText: obscure,
       keyboardType: type,
       style: const TextStyle(color: Colors.white),

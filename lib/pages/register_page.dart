@@ -13,15 +13,22 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final usernameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final phoneCtrl = TextEditingController();
   final passCtrl = TextEditingController();
+
   String? level;
   bool _loading = false;
 
-  final primary = const Color(0xFF0A4CFF); // color principal azul
+  final primary = const Color(0xFF0A4CFF);
 
   Future<void> register() async {
+    // Validaciones básicas
+    if (usernameCtrl.text.trim().isEmpty) {
+      return showError("Ingresa un nombre de usuario");
+    }
+
     final emailError = Validators.validateEmail(emailCtrl.text);
     if (emailError != null) return showError(emailError);
 
@@ -36,28 +43,40 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _loading = true);
 
     try {
-      // 1️⃣ Crear usuario en Firebase Auth
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-              email: emailCtrl.text.trim(),
-              password: passCtrl.text.trim());
+      // 1️⃣ Verificar si el nombre de usuario ya existe
+      final query = await FirebaseFirestore.instance
+          .collection('users')
+          .where('username', isEqualTo: usernameCtrl.text.trim())
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        setState(() => _loading = false);
+        return showError("Ese nombre de usuario ya está en uso");
+      }
+
+      // 2️⃣ Crear usuario
+      UserCredential userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailCtrl.text.trim(),
+        password: passCtrl.text.trim(),
+      );
 
       final user = userCredential.user;
 
       if (user != null) {
-        // 2️⃣ Enviar correo de verificación
+        // 3️⃣ Enviar correo de verificación
         await user.sendEmailVerification();
 
-        // 3️⃣ Guardar datos en Firestore
+        // 4️⃣ Guardar datos en Firestore
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'username': usernameCtrl.text.trim(),
           'email': emailCtrl.text.trim(),
           'phone': phoneCtrl.text.trim(),
           'level': level,
           'createdAt': FieldValue.serverTimestamp(),
         });
 
-        showSuccess('Cuenta creada. Verifica tu correo.');
-
+        showSuccess("Cuenta creada. Verifica tu correo.");
         Navigator.pop(context);
       }
     } on FirebaseAuthException catch (e) {
@@ -76,7 +95,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1F44), // fondo oscuro
+      backgroundColor: const Color(0xFF0A1F44),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -89,25 +108,32 @@ class _RegisterPageState extends State<RegisterPage> {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: primary, // uso de primary
+                color: primary,
               ),
             ),
             const SizedBox(height: 30),
-            _input('Correo', emailCtrl, Icons.email_outlined),
+
+            // 🔹 Nombre de usuario
+            _input("Nombre de usuario", usernameCtrl, Icons.person),
+
             const SizedBox(height: 15),
-            _input('Número de teléfono', phoneCtrl, Icons.phone_android,
+            _input("Correo", emailCtrl, Icons.email_outlined),
+            const SizedBox(height: 15),
+            _input("Número de teléfono", phoneCtrl, Icons.phone_android,
                 type: TextInputType.phone),
             const SizedBox(height: 15),
-            _input('Contraseña', passCtrl, Icons.lock_outline, obscure: true),
+            _input("Contraseña", passCtrl, Icons.lock_outline, obscure: true),
+
             const SizedBox(height: 20),
             LevelSelector(onSelected: (v) => level = v),
             const SizedBox(height: 30),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _loading ? null : register,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primary, // uso de primary
+                  backgroundColor: primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -134,9 +160,9 @@ class _RegisterPageState extends State<RegisterPage> {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white70),
-        prefixIcon: Icon(icon, color: primary), // uso de primary
+        prefixIcon: Icon(icon, color: primary),
         filled: true,
-        fillColor: Colors.blueGrey.shade900,
+        fillColor: const Color(0xFF0A1F44), // azul oscuro
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );

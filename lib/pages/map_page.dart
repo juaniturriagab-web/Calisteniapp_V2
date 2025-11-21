@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/location_service.dart';
+import 'park_detail_page.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -10,59 +12,22 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
-  GoogleMapController? _controller;
+  GoogleMapController? mapController;
   LatLng? _currentPosition;
+  Set<Marker> _markers = {};
 
   @override
   void initState() {
     super.initState();
-    _initLocation();
+    _loadLocation();
+    _loadParks();
   }
 
-  Future<void> _initLocation() async {
+  Future<void> _loadLocation() async {
     try {
-      // Verificar permisos
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Activa la ubicación del dispositivo')),
-        );
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permiso de ubicación denegado permanentemente')),
-        );
-        return;
-      }
-
-      // Obtener ubicación actual
-      final position = await Geolocator.getCurrentPosition();
+      final position = await getCurrentLocation();
       setState(() {
         _currentPosition = LatLng(position.latitude, position.longitude);
-      });
-
-      // Escuchar cambios de ubicación en tiempo real
-      Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 5, // metros
-        ),
-      ).listen((pos) {
-        if (_controller != null) {
-          _controller!.animateCamera(
-            CameraUpdate.newLatLng(LatLng(pos.latitude, pos.longitude)),
-          );
-        }
       });
     } catch (e) {
       ScaffoldMessenger.of(context)
@@ -70,25 +35,47 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  Future<void> _loadParks() async {
+    final parks = await FirebaseFirestore.instance.collection('parks').get();
+    final markers = parks.docs.map((doc) {
+      final data = doc.data();
+      return Marker(
+        markerId: MarkerId(doc.id),
+        position: LatLng(data['lat'], data['lng']),
+        infoWindow: InfoWindow(
+          title: data['name'],
+          snippet: '⭐ ${data['rating']}',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ParkDetailPage(parkId: doc.id),
+              ),
+            );
+          },
+        ),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+      );
+    }).toSet();
+
+    setState(() => _markers = markers);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A1F44),
       body: _currentPosition == null
-          ? const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            )
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : GoogleMap(
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+              onMapCreated: (controller) => mapController = controller,
               initialCameraPosition: CameraPosition(
                 target: _currentPosition!,
-                zoom: 16,
+                zoom: 14,
               ),
-              onMapCreated: (controller) => _controller = controller,
-              myLocationEnabled: true, // 🔹 muestra el punto azul dinámico
-              myLocationButtonEnabled: true, // 🔹 botón para centrar la vista
-              zoomControlsEnabled: false,
-              compassEnabled: true,
-              mapToolbarEnabled: false,
+              markers: _markers,
             ),
     );
   }

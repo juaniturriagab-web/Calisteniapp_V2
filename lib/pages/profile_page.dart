@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'login_page.dart'; // ⚠️ asegúrate de tener esta ruta correcta
+import 'login_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -24,7 +24,10 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadUserData() async {
     if (user == null) return;
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .get();
       if (doc.exists) {
         setState(() {
           userData = doc.data();
@@ -39,6 +42,16 @@ class _ProfilePageState extends State<ProfilePage> {
         SnackBar(content: Text('Error al cargar datos: $e')),
       );
     }
+  }
+
+  // ✅ FUNCION PARA CENSURAR CORREO
+  String censorEmail(String email) {
+    final parts = email.split('@');
+    if (parts[0].length <= 2) return "***@${parts[1]}";
+
+    final first = parts[0][0];
+    final last = parts[0][parts[0].length - 1];
+    return "$first***$last@${parts[1]}";
   }
 
   Future<void> _logout() async {
@@ -77,7 +90,8 @@ class _ProfilePageState extends State<ProfilePage> {
           ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : userData == null
               ? const Center(
-                  child: Text('No se encontraron datos', style: TextStyle(color: Colors.white)),
+                  child: Text('No se encontraron datos',
+                      style: TextStyle(color: Colors.white)),
                 )
               : Padding(
                   padding: const EdgeInsets.all(24),
@@ -87,18 +101,41 @@ class _ProfilePageState extends State<ProfilePage> {
                       const CircleAvatar(
                         radius: 45,
                         backgroundColor: Colors.white10,
-                        child: Icon(Icons.person, color: Colors.white70, size: 50),
+                        child:
+                            Icon(Icons.person, color: Colors.white70, size: 50),
                       ),
                       const SizedBox(height: 20),
+
+                      // 🔵 NOMBRE DE USUARIO
                       Text(
-                        userData!['email'] ?? 'Correo no disponible',
-                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        userData!['username'] ?? 'Usuario',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      const SizedBox(height: 10),
+
+                      const SizedBox(height: 8),
+
+                      // 🔵 CORREO CENSURADO
+                      Text(
+                        censorEmail(userData!['email'] ?? ""),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
                       _infoBox('Teléfono', userData!['phone'] ?? 'No registrado'),
                       const SizedBox(height: 10),
-                      _infoBox('Nivel de calistenia', userData!['level'] ?? 'Sin nivel'),
+                      _infoBox(
+                          'Nivel de calistenia', userData!['level'] ?? 'Sin nivel'),
+
                       const Spacer(),
+
                       ElevatedButton.icon(
                         onPressed: _logout,
                         icon: const Icon(Icons.exit_to_app, color: Colors.white),
@@ -108,7 +145,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 40, vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -132,8 +170,11 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 16)),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+          Text(label,
+              style: const TextStyle(color: Colors.white70, fontSize: 16)),
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w500)),
         ],
       ),
     );
