@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/level_selector.dart';
 import '../widgets/calisthenics_logo.dart';
 import '../utils/validators.dart';
+import '../widgets/password_validation_view.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -18,10 +20,24 @@ class _RegisterPageState extends State<RegisterPage> {
   final phoneCtrl = TextEditingController();
   final passCtrl = TextEditingController();
 
+  final _usernameFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _phoneFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+
   String? level;
   bool _loading = false;
 
   final primary = const Color(0xFF0A4CFF);
+
+  @override
+  void dispose() {
+    _usernameFocus.dispose();
+    _emailFocus.dispose();
+    _phoneFocus.dispose();
+    _passwordFocus.dispose();
+    super.dispose();
+  }
 
   Future<void> register() async {
     // Validaciones básicas
@@ -76,6 +92,7 @@ class _RegisterPageState extends State<RegisterPage> {
           'createdAt': FieldValue.serverTimestamp(),
         });
 
+        if (!mounted) return;
         showSuccess("Cuenta creada. Verifica tu correo.");
         Navigator.pop(context);
       }
@@ -96,11 +113,16 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A1F44),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const SizedBox(height: 60),
+            const SizedBox(height: 0),
             const CalisthenicsLogo(),
             const SizedBox(height: 20),
             Text(
@@ -114,15 +136,17 @@ class _RegisterPageState extends State<RegisterPage> {
             const SizedBox(height: 30),
 
             // 🔹 Nombre de usuario
-            _input("Nombre de usuario", usernameCtrl, Icons.person),
+            _input("Nombre de usuario", usernameCtrl, Icons.person, focusNode: _usernameFocus),
 
             const SizedBox(height: 15),
-            _input("Correo", emailCtrl, Icons.email_outlined),
+            _input("Correo", emailCtrl, Icons.email_outlined, focusNode: _emailFocus),
             const SizedBox(height: 15),
             _input("Número de teléfono", phoneCtrl, Icons.phone_android,
-                type: TextInputType.phone),
+                type: TextInputType.phone, focusNode: _phoneFocus),
             const SizedBox(height: 15),
-            _input("Contraseña", passCtrl, Icons.lock_outline, obscure: true),
+            _input("Contraseña", passCtrl, Icons.lock_outline, obscure: true, focusNode: _passwordFocus),
+            const SizedBox(height: 15),
+            PasswordValidationView(passwordController: passCtrl),
 
             const SizedBox(height: 20),
             LevelSelector(onSelected: (v) => level = v),
@@ -151,19 +175,31 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Widget _input(String label, TextEditingController ctrl, IconData icon,
-      {bool obscure = false, TextInputType type = TextInputType.text}) {
-    return TextField(
-      controller: ctrl,
-      obscureText: obscure,
-      keyboardType: type,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white70),
-        prefixIcon: Icon(icon, color: primary),
-        filled: true,
-        fillColor: const Color(0xFF0A1F44), // azul oscuro
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      {bool obscure = false, TextInputType type = TextInputType.text, FocusNode? focusNode}) {
+    return GestureDetector(
+      onTap: () {
+        if (focusNode != null) {
+          if(focusNode.hasFocus) {
+            SystemChannels.textInput.invokeMethod('TextInput.show');
+          } else {
+            FocusScope.of(context).requestFocus(focusNode);
+          }
+        }
+      },
+      child: TextField(
+        controller: ctrl,
+        focusNode: focusNode,
+        obscureText: obscure,
+        keyboardType: type,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.white70),
+          prefixIcon: Icon(icon, color: primary),
+          filled: true,
+          fillColor: const Color(0xFF0A1F44), // azul oscuro
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        ),
       ),
     );
   }
