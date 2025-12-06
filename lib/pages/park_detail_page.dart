@@ -88,6 +88,7 @@ class _ParkDetailPageState extends State<ParkDetailPage> {
         ),
         backgroundColor: const Color(0xFF0A1F44),
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
